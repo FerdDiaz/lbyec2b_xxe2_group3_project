@@ -306,12 +306,7 @@ end
 
 ## Contributors
 
-Edit this README file to add the name of all project contributors.
+Fernando J. Diaz 
+ID: 12110714
 
-To edit, you can:
-1. on the upper right of README.md here, click the pencil icon.
-2. Make sure to check "commit directly to the master branch"
-3. Then Commit Changes green button
-
-
-Lastly, you can optionally edit this whole README file to introduce your project.
+TaskMaster is a powerful and user-friendly to-do list application designed to streamline your daily tasks and boost your productivity. With its intuitive interface and robust features, managing your tasks has never been easier. TaskMaster empowers you to take control of your schedule and achieve your goals efficiently. Make each day more productive and rewarding with TaskMaster as your trusted to-do list companion. In conclusion, TaskMaster is a powerful tool that helps you organize your tasks and stay motivated by keeping track of completed tasks. With TaskMaster, you can efficiently manage your responsibilities, prioritize tasks effectively, and achieve more in less time. With TaskMaster as your task manager, you can experience increased productivity, reduced stress, and a sense of accomplishment as you conquer your to-do list. Take control of your day with TaskMaster and unlock your full potential for success.
