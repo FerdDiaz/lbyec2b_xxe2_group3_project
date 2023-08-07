@@ -1,0 +1,303 @@
+classdef TaskMaster < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                     matlab.ui.Figure
+        LoadButton                   matlab.ui.control.Button
+        DeleteActiveTaskButton       matlab.ui.control.Button
+        SaveButton                   matlab.ui.control.Button
+        DeleteCompleteTaskButton     matlab.ui.control.Button
+        CompleteTaskButton           matlab.ui.control.Button
+        CompletedTaskList            matlab.ui.control.ListBox
+        CompletedTasksLabel          matlab.ui.control.Label
+        TaskList                     matlab.ui.control.ListBox
+        ActiveTasksLabel             matlab.ui.control.Label
+        AddTaskButton                matlab.ui.control.Button
+        CreateNewTaskEditField       matlab.ui.control.EditField
+        CreateNewTaskEditFieldLabel  matlab.ui.control.Label
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+             % Check if there is a saved MAT-file with task data
+            if exist('task_list.mat', 'file') == 2
+                % If the MAT-file exists, load the task data
+                loadedData = load('task_list.mat');
+                app.TaskList.Items = loadedData.activeTasks;
+                app.CompletedTaskList.Items = loadedData.completedTasks;
+            end
+        end
+
+        % Button pushed function: AddTaskButton
+        function AddTaskButtonPushed(app, event)
+            newTask = app.CreateNewTaskEditField.Value;
+    
+            % Ensure newTask is a cell array
+            newTaskCell = {newTask};
+            
+            % Convert existing tasks to cell array
+            existingTasks = app.TaskList.Items;
+            
+            % Check if there are existing tasks
+            if isempty(existingTasks)
+                % If there are no existing tasks, set the Items property directly
+                app.TaskList.Items = newTaskCell;
+            else
+                % If there are existing tasks, concatenate the new task cell array with the existing cell array
+                app.TaskList.Items = [existingTasks, newTaskCell];
+            end
+            
+            app.CreateNewTaskEditField.Value = '';
+        end
+
+        % Button pushed function: CompleteTaskButton
+        function CompleteTaskButtonPushed2(app, event)
+            if isempty(app.TaskList.Items)
+                % If the CompletedTaskList is empty, show a notification
+                msg = 'There are no active tasks to complete.';
+                title = 'No Active Tasks';
+                msgbox(msg, title, 'modal');
+            else
+                selectedIdx = find(strcmp(app.TaskList.Items, app.TaskList.Value));
+                if ~isempty(selectedIdx)
+                    % app.TaskList.Value = 'Task 3';
+                    app.CompletedTaskList.Items = [app.CompletedTaskList.Items, app.TaskList.Items(selectedIdx)];
+                    app.TaskList.Items(selectedIdx) = [];
+                end
+            end
+        end
+
+        % Button pushed function: DeleteCompleteTaskButton
+        function DeleteCompleteTaskButtonPushed(app, event)
+            if isempty(app.CompletedTaskList.Items)
+                % If the CompletedTaskList is empty, show a notification
+                msg = 'There are no completed tasks to delete.';
+                title = 'No Completed Tasks';
+                msgbox(msg, title, 'modal');
+            else
+                selectedIdx = find(strcmp(app.CompletedTaskList.Items, app.CompletedTaskList.Value));
+                if ~isempty(selectedIdx)
+                    % Remove the selected task from the CompletedTaskList
+                    app.CompletedTaskList.Items(selectedIdx) = [];
+                end
+            end
+        end
+
+        % Button pushed function: SaveButton
+        function SaveButtonPushed(app, event)
+            % Get the active tasks and completed tasks
+            activeTasks = app.TaskList.Items;
+            completedTasks = app.CompletedTaskList.Items;
+            
+            % Open a file dialog to get the file name and location
+            [fileName, pathName] = uiputfile('*.mat', 'Save Task List', 'task_list.mat');
+            
+            if isequal(fileName, 0) || isequal(pathName, 0)
+                % If the user canceled the file dialog, do nothing
+                return;
+            end
+            
+            % Create the full file path
+            fullFilePath = fullfile(pathName, fileName);
+            
+            try
+                % Save the task data to the MAT-file
+                save(fullFilePath, 'activeTasks', 'completedTasks');
+                
+                % Display a success message with the file path
+                successMsg = sprintf('Tasks saved successfully!\nFile saved at:\n%s', fullFilePath);
+                uialert(app.UIFigure, successMsg, 'Success', 'Icon', 'success');
+            catch
+                % If there was an error saving the data, display an error message
+                uialert(app.UIFigure, 'Error saving tasks. Please try again.', 'Error', 'Icon', 'error');
+            end
+        end
+
+        % Button pushed function: DeleteActiveTaskButton
+        function DeleteActiveTaskButtonPushed(app, event)
+            if isempty(app.TaskList.Items)
+                % If the CompletedTaskList is empty, show a notification
+                msg = 'There are no Active tasks to delete.';
+                title = 'No Active Tasks';
+                msgbox(msg, title, 'modal');
+            else
+                selectedIdx = find(strcmp(app.TaskList.Items, app.TaskList.Value));
+                if ~isempty(selectedIdx)
+                    % Remove the selected task from the ActiveTaskList
+                    app.TaskList.Items(selectedIdx) = [];
+                end
+            end
+        end
+
+        % Button pushed function: LoadButton
+        function LoadButtonPushed(app, event)
+            % Prompt the user to select the MAT-file to load
+            [fileName, pathName] = uigetfile('*.mat', 'Select Task List to Load');
+            
+            if isequal(fileName, 0) || isequal(pathName, 0)
+                % If the user canceled the file selection, do nothing
+                return;
+            end
+            
+            % Create the full file path
+            fullFilePath = fullfile(pathName, fileName);
+            
+            % Load the task data from the selected MAT-file
+            try
+                loadedData = load(fullFilePath);
+                
+                % Check if the loaded data contains the required variables
+                if isfield(loadedData, 'activeTasks') && isfield(loadedData, 'completedTasks')
+                    % If the required variables exist, populate the lists
+                    app.TaskList.Items = loadedData.activeTasks;
+                    app.CompletedTaskList.Items = loadedData.completedTasks;
+                    
+                    % Display a success message with the file path
+                    successMsg = sprintf('Tasks loaded successfully!\nFile loaded from:\n%s', fullFilePath);
+                    uialert(app.UIFigure, successMsg, 'Success', 'Icon', 'success');
+                else
+                    % If the required variables are missing, display an error message
+                    uialert(app.UIFigure, 'The selected file does not contain valid task data.', 'Error', 'Icon', 'error');
+                end
+            catch
+                % If there was an error loading the data, display an error message
+                uialert(app.UIFigure, 'Error loading tasks. Please select a valid MAT-file.', 'Error', 'Icon', 'error');
+            end
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Color = [1 1 1];
+            app.UIFigure.Position = [100 100 482 535];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create CreateNewTaskEditFieldLabel
+            app.CreateNewTaskEditFieldLabel = uilabel(app.UIFigure);
+            app.CreateNewTaskEditFieldLabel.BackgroundColor = [1 1 1];
+            app.CreateNewTaskEditFieldLabel.HorizontalAlignment = 'right';
+            app.CreateNewTaskEditFieldLabel.FontSize = 24;
+            app.CreateNewTaskEditFieldLabel.FontWeight = 'bold';
+            app.CreateNewTaskEditFieldLabel.FontColor = [0 0.5412 0];
+            app.CreateNewTaskEditFieldLabel.Position = [140 471 196 31];
+            app.CreateNewTaskEditFieldLabel.Text = 'Create New Task';
+
+            % Create CreateNewTaskEditField
+            app.CreateNewTaskEditField = uieditfield(app.UIFigure, 'text');
+            app.CreateNewTaskEditField.FontSize = 14;
+            app.CreateNewTaskEditField.FontWeight = 'bold';
+            app.CreateNewTaskEditField.Tooltip = {'Please Enter your To Do List Items and Hit Add Item'};
+            app.CreateNewTaskEditField.Position = [111 434 266 35];
+
+            % Create AddTaskButton
+            app.AddTaskButton = uibutton(app.UIFigure, 'push');
+            app.AddTaskButton.ButtonPushedFcn = createCallbackFcn(app, @AddTaskButtonPushed, true);
+            app.AddTaskButton.Position = [192 375 104 29];
+            app.AddTaskButton.Text = 'Add Task';
+
+            % Create ActiveTasksLabel
+            app.ActiveTasksLabel = uilabel(app.UIFigure);
+            app.ActiveTasksLabel.VerticalAlignment = 'top';
+            app.ActiveTasksLabel.FontSize = 14;
+            app.ActiveTasksLabel.FontWeight = 'bold';
+            app.ActiveTasksLabel.FontColor = [0 0.5412 0];
+            app.ActiveTasksLabel.Position = [49 306 48 34];
+            app.ActiveTasksLabel.Text = {'Active'; 'Tasks '};
+
+            % Create TaskList
+            app.TaskList = uilistbox(app.UIFigure);
+            app.TaskList.Items = {};
+            app.TaskList.Tooltip = {'Please Select one Active Task and click Complete Task'};
+            app.TaskList.FontWeight = 'bold';
+            app.TaskList.Position = [112 243 283 97];
+            app.TaskList.Value = {};
+
+            % Create CompletedTasksLabel
+            app.CompletedTasksLabel = uilabel(app.UIFigure);
+            app.CompletedTasksLabel.HorizontalAlignment = 'center';
+            app.CompletedTasksLabel.FontSize = 14;
+            app.CompletedTasksLabel.FontWeight = 'bold';
+            app.CompletedTasksLabel.FontColor = [0 0.5412 0];
+            app.CompletedTasksLabel.Position = [33 124 81 34];
+            app.CompletedTasksLabel.Text = {'Completed '; 'Tasks'};
+
+            % Create CompletedTaskList
+            app.CompletedTaskList = uilistbox(app.UIFigure);
+            app.CompletedTaskList.Items = {};
+            app.CompletedTaskList.Tooltip = {'Please Select one Complete Task and click Delete Complete Task'};
+            app.CompletedTaskList.FontWeight = 'bold';
+            app.CompletedTaskList.Position = [112 95 283 74];
+            app.CompletedTaskList.Value = {};
+
+            % Create CompleteTaskButton
+            app.CompleteTaskButton = uibutton(app.UIFigure, 'push');
+            app.CompleteTaskButton.ButtonPushedFcn = createCallbackFcn(app, @CompleteTaskButtonPushed2, true);
+            app.CompleteTaskButton.Position = [112 194 100 23];
+            app.CompleteTaskButton.Text = 'Complete Task';
+
+            % Create DeleteCompleteTaskButton
+            app.DeleteCompleteTaskButton = uibutton(app.UIFigure, 'push');
+            app.DeleteCompleteTaskButton.ButtonPushedFcn = createCallbackFcn(app, @DeleteCompleteTaskButtonPushed, true);
+            app.DeleteCompleteTaskButton.Position = [178 56 132 23];
+            app.DeleteCompleteTaskButton.Text = 'Delete Complete Task';
+
+            % Create SaveButton
+            app.SaveButton = uibutton(app.UIFigure, 'push');
+            app.SaveButton.ButtonPushedFcn = createCallbackFcn(app, @SaveButtonPushed, true);
+            app.SaveButton.Position = [368 11 100 23];
+            app.SaveButton.Text = 'Save';
+
+            % Create DeleteActiveTaskButton
+            app.DeleteActiveTaskButton = uibutton(app.UIFigure, 'push');
+            app.DeleteActiveTaskButton.ButtonPushedFcn = createCallbackFcn(app, @DeleteActiveTaskButtonPushed, true);
+            app.DeleteActiveTaskButton.Position = [282 194 113 23];
+            app.DeleteActiveTaskButton.Text = 'Delete Active Task';
+
+            % Create LoadButton
+            app.LoadButton = uibutton(app.UIFigure, 'push');
+            app.LoadButton.ButtonPushedFcn = createCallbackFcn(app, @LoadButtonPushed, true);
+            app.LoadButton.Position = [14 10 100 23];
+            app.LoadButton.Text = 'Load';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = TaskMaster
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
